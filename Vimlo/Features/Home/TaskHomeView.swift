@@ -9,31 +9,70 @@ import SwiftData
 import SwiftUI
 
 struct TaskHomeView: View {
-    @Environment(\.modelContext) var modelContext
-    @Query(sort: \Task.title) var tasks: [Task]
-    @State private var path = [Task]()
-    
+    @Environment(\.modelContext) private var modelContext
+
+    @Query(filter: #Predicate<Task> { !$0.isCompleted })
+    private var tasks: [Task]
+
+    @State private var viewModel = TaskHomeViewModel()
+
     var body: some View {
-        NavigationStack(path: $path) {
-            List(tasks) {task in
-                NavigationLink(value: task) {
-                    Text(task.title)
+        let sections = viewModel.sections(for: tasks)
+
+        NavigationStack {
+            Group {
+                if viewModel.isEmpty(tasks: tasks) {
+                    ContentUnavailableView(
+                        "No Tasks Yet",
+                        systemImage: "checklist",
+                        description: Text("Add your first task to get started.")
+                    )
+                } else {
+                    List {
+                        ForEach(sections) { section in
+                            Section(section.title) {
+                                ForEach(section.tasks) { task in
+                                    NavigationLink {
+                                        TaskEditorView(task: task)
+                                    } label: {
+                                        Text(task.title)
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button("Delete", role: .destructive) {
+                                            try? viewModel.delete(task, in: modelContext)
+                                        }
+
+                                        Button("Complete") {
+                                            try? viewModel.complete(task, in: modelContext)
+                                        }
+                                        .tint(.green)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("Tasks")
-            .navigationDestination(for: Task.self) { task in
-                TaskEditorView(task: task)
-            }
             .toolbar {
-                Button("Add task", systemImage: "plus") {
-                    let task = Task(title: "")
-                    modelContext.insert(task)
-                    path = [task]
+                Button("Add Task", systemImage: "plus") {
+                    viewModel.didTapAddTask()
+                }
+            }
+            .sheet(
+                isPresented: $viewModel.isPresentingCreateSheet,
+                onDismiss: {
+                    viewModel.didDismissCreateSheet()
+                }
+            ) {
+                NavigationStack {
+                    TaskEditorView()
                 }
             }
         }
     }
 }
+
 
 #Preview {
     TaskHomeView()
