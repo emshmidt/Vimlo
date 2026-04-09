@@ -10,27 +10,56 @@ import SwiftUI
 
 struct TaskHomeView: View {
     @Environment(\.modelContext) var modelContext
-    @Query(sort: \Task.title) var tasks: [Task]
-    @State private var path = [Task]()
+    @Query(filter: #Predicate<Task> { !$0.isCompleted }) var tasks: [Task]
+    //var tasks: [Task] = [
+        //Task(title: "Test task", dueDate: .now),
+        //Task(title: "Test task"),
+        //Task(title: "Test task"),
+    //]
+    //@State private var path = [Task]()
+    @State private var viewModel = TaskHomeViewModel()
+    
+    
     
     var body: some View {
-        NavigationStack(path: $path) {
-            List(tasks) {task in
-                NavigationLink(value: task) {
-                    Text(task.title)
+        let sections = viewModel.makeSections(tasks: tasks)
+        
+        NavigationStack {
+            Group {
+                if viewModel.isEmpty(tasks: tasks) {
+                    ContentUnavailableView(
+                        "No Active Tasks Yet",
+                        systemImage: "checklist",
+                        description: Text("Add your first task to get started.")
+                    )
+                } else {
+                    List {
+                        ForEach(sections) { section in
+                            Section(section.title) {
+                                ForEach(section.tasks) { task in
+                                    Text(task.title)
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            
             .navigationTitle("Tasks")
             .navigationDestination(for: Task.self) { task in
                 TaskEditorView(task: task)
             }
             .toolbar {
                 Button("Add task", systemImage: "plus") {
-                    let task = Task(title: "")
-                    modelContext.insert(task)
-                    path = [task]
+                    viewModel.tappedPlusButton()
                 }
             }
+            .sheet(isPresented: $viewModel.isAddTaskSheetPresented){
+                let task = Task(title: "")
+                NavigationLink("hey", destination: TaskEditorView(task: task))
+                //TaskEditorView()
+            }
+            
         }
     }
 }
