@@ -56,8 +56,7 @@ struct TaskHomeView: View {
             }
             .sheet(isPresented: $viewModel.isAddTaskSheetPresented){
                 let task = Task(title: "")
-                NavigationLink("hey", destination: TaskEditorView(task: task))
-                //TaskEditorView()
+                TaskEditorView(task: task)
             }
             
         }
