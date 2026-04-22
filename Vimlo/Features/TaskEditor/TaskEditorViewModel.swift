@@ -46,6 +46,15 @@ struct TaskDraft {
             dueDate: nil
         )
     }
+    
+    static func fromTask(task: Task) -> TaskDraft {
+        TaskDraft(
+            title: task.title,
+            note: task.note ?? "",
+            hasDueDate: task.dueDate != nil,
+            dueDate: task.dueDate
+        )
+    }
 }
 
 @Observable
@@ -59,22 +68,42 @@ class TaskEditorViewModel {
     }
     let mode: Mode
     var taskDraft: TaskDraft
+    var editingtask: Task?
+    var isDeletePresented = false
     
-    init(mode: Mode = .create) {
-        self.mode = mode
-        
-        switch mode {
-        case .create:
-            self.taskDraft = .empty()
-        case .edit:
-            self.taskDraft = .empty() // потом замените на init(from: task)
-        }
+    init() {
+        self.mode = .create
+        self.taskDraft = .empty()
+        self.editingtask = nil
+    }
+    
+    init(task: Task) {
+        self.mode = .edit
+        self.taskDraft = .fromTask(task: task)
+        self.editingtask = task
     }
     
     func save(context: ModelContext) throws {
         let task = transformTaskDraft(from: taskDraft)
-        context.insert(task)
+        if mode == .create {
+            context.insert(task)
+        } else {
+            editingtask?.title = task.title
+            editingtask?.note = task.note
+            editingtask?.dueDate = task.dueDate
+            editingtask?.updatedAt = Date.now
+        }
         try context.save()
+    }
+    
+    func deleteTapped() {
+        isDeletePresented = true
+    }
+    
+    func delete(context: ModelContext) throws {
+        context.delete(editingtask!)
+        try context.save()
+        isDeletePresented = false
     }
     
     func transformTaskDraft(from taskDraft: TaskDraft) -> Task {

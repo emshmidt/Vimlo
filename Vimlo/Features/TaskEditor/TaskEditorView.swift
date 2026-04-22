@@ -12,52 +12,78 @@ struct TaskEditorView: View {
     @Environment(\.modelContext) var modelContext
     @Environment(\.dismiss) var dismiss
     
-    @Bindable var task: Task
+    //@Bindable var task: Task
     
-    @State private var viewModel = TaskEditorViewModel()
+    @State private var viewModel: TaskEditorViewModel
     @State private var saveErrorMessage: String?
     
     
+    init() {
+        _viewModel = State(initialValue: TaskEditorViewModel())
+    }
+    
+    init(task: Task) {
+        _viewModel = State(initialValue: TaskEditorViewModel(task: task))
+    }
+    
     var body: some View {
-        NavigationStack {
-            Form {
-                TextField("Title", text: $viewModel.taskDraft.title)
-                TextField("Note", text: $viewModel.taskDraft.note, axis: .vertical)
-                    .lineLimit(3...6)
-                Toggle("Due date", isOn: $viewModel.taskDraft.hasDueDate)
-                    .onChange(of: viewModel.taskDraft.hasDueDate) { _, hasDueDate in
-                        if hasDueDate && viewModel.taskDraft.dueDate == nil {
-                            viewModel.taskDraft.dueDate = Calendar.current.startOfDay(for: .now)
-                        }
-                        
-                        if !hasDueDate {
-                            viewModel.taskDraft.dueDate = nil
-                        }
+        Form {
+            TextField("Title", text: $viewModel.taskDraft.title)
+            TextField("Note", text: $viewModel.taskDraft.note, axis: .vertical)
+                .lineLimit(3...6)
+            Toggle("Due date", isOn: $viewModel.taskDraft.hasDueDate)
+                .onChange(of: viewModel.taskDraft.hasDueDate) { _, hasDueDate in
+                    if hasDueDate && viewModel.taskDraft.dueDate == nil {
+                        viewModel.taskDraft.dueDate = Calendar.current.startOfDay(for: .now)
                     }
-                
-                if viewModel.taskDraft.hasDueDate {
-                    DatePicker("Due date", selection: dueDateBinding, displayedComponents: .date)
-                }
-            }
-            .navigationTitle(viewModel.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                Button("Save") {
-                    do {
-                        try viewModel.save(context: modelContext)
-                        dismiss()
-                    } catch {
-                        saveErrorMessage = error.localizedDescription
+                    
+                    if !hasDueDate {
+                        viewModel.taskDraft.dueDate = nil
                     }
                 }
-                .disabled(!viewModel.taskDraft.isSaveEnabled)
+            
+            if viewModel.taskDraft.hasDueDate {
+                DatePicker("Due date", selection: dueDateBinding, displayedComponents: .date)
             }
-            .alert("Could not save task", isPresented: saveErrorMessageBinding) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(saveErrorMessage ?? "Please try again.")
+            
+            Section {
+                if viewModel.mode == .edit {
+                    Button("Delete task", role: .destructive) {
+                        viewModel.deleteTapped()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                }
             }
         }
+        .navigationTitle(viewModel.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Button("Save") {
+                save()
+            }
+            .disabled(!viewModel.taskDraft.isSaveEnabled)
+        }
+        .alert("Error", isPresented: saveErrorMessageBinding) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage ?? "Please try again.")
+        }
+        .confirmationDialog("Delete task?",
+                            isPresented: $viewModel.isDeletePresented,
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                delete()
+            }
+            
+            Button("Cancel", role: .cancel) {
+                
+            }
+        }
+        
         
         
     }
@@ -72,7 +98,7 @@ struct TaskEditorView: View {
             }
         )
     }
-
+    
     private var saveErrorMessageBinding: Binding<Bool> {
         Binding(
             get: { saveErrorMessage != nil },
@@ -82,6 +108,24 @@ struct TaskEditorView: View {
                 }
             }
         )
+    }
+    
+    func delete() {
+        do {
+            try viewModel.delete(context: modelContext)
+            dismiss()
+        } catch {
+            saveErrorMessage = error.localizedDescription
+        }
+    }
+    
+    func save() {
+        do {
+            try viewModel.save(context: modelContext)
+            dismiss()
+        } catch {
+            saveErrorMessage = error.localizedDescription
+        }
     }
     
 }
