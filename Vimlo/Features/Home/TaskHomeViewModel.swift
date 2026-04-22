@@ -116,6 +116,6 @@ class TaskHomeViewModel {
     }
     
     func didDismissCreateSheet() {
-            isAddTaskSheetPresented = false
-        }
+        isAddTaskSheetPresented = false
+    }
 }

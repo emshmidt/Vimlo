@@ -11,12 +11,6 @@ import SwiftUI
 struct TaskHomeView: View {
     @Environment(\.modelContext) var modelContext
     @Query(filter: #Predicate<Task> { !$0.isCompleted }) var tasks: [Task]
-    //var tasks: [Task] = [
-        //Task(title: "Test task", dueDate: .now),
-        //Task(title: "Test task"),
-        //Task(title: "Test task"),
-    //]
-    //@State private var path = [Task]()
     @State private var viewModel = TaskHomeViewModel()
     
     
@@ -37,7 +31,10 @@ struct TaskHomeView: View {
                         ForEach(sections) { section in
                             Section(section.title) {
                                 ForEach(section.tasks) { task in
-                                    Text(task.title)
+                                    NavigationLink(value: task) {
+                                        Text(task.title)
+                                    }
+                                    
                                 }
                             }
                         }
@@ -55,8 +52,9 @@ struct TaskHomeView: View {
                 }
             }
             .sheet(isPresented: $viewModel.isAddTaskSheetPresented){
-                let task = Task(title: "")
-                TaskEditorView(task: task)
+                NavigationStack {
+                    TaskEditorView()
+                }
             }
             
         }
