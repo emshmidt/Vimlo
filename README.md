@@ -179,6 +179,10 @@ Planned improvements:
 │   │   └── TaskEditor
 │   ├── Models
 │   └── Services
+├── VimloTests
+│   ├── Features
+│   ├── Helpers
+│   └── Services
 ├── Vimlo.xcodeproj
 └── docs
     └── screenshots
