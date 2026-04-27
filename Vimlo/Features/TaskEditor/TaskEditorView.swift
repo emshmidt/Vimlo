@@ -45,6 +45,17 @@ struct TaskEditorView: View {
             }
             
             Section {
+                Button(viewModel.taskDraft.isCompleted ? "Reactivate task" : "Mark as completed") {
+                    viewModel.onToggleCompletion()
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(.secondarySystemGroupedBackground))
+                .cornerRadius(10)
+                .padding(.horizontal)
+            }
+            
+            Section {
                 if viewModel.mode == .edit {
                     Button("Delete task", role: .destructive) {
                         viewModel.deleteTapped()
@@ -76,7 +87,7 @@ struct TaskEditorView: View {
         .navigationTitle(viewModel.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            Button("Save") {
+            Button(viewModel.saveTitle) {
                 save()
             }
             .disabled(!viewModel.taskDraft.isSaveEnabled)

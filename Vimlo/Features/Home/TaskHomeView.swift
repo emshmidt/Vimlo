@@ -9,10 +9,10 @@ import SwiftData
 import SwiftUI
 
 struct TaskHomeView: View {
-    @Environment(\.modelContext) var modelContext
     @Query(filter: #Predicate<Task> { !$0.isCompleted }) var tasks: [Task]
-    @State private var viewModel = TaskHomeViewModel()
+    @Query(filter: #Predicate<Task> { $0.isCompleted }) var completedTasks: [Task]
     
+    @State private var viewModel = TaskHomeViewModel()
     
     
     var body: some View {
@@ -21,31 +21,52 @@ struct TaskHomeView: View {
         NavigationStack {
             Group {
                 if viewModel.isEmpty(tasks: tasks) {
-                    ContentUnavailableView(
-                        "No Active Tasks Yet",
-                        systemImage: "checklist",
-                        description: Text("Add your first task to get started.")
-                    )
+                    VStack {
+                        if completedTasks.count > 0 {
+                            NavigationLink(
+                                destination: CompletedTasksView(),
+                                label: {
+                                    CompletedEntryRowView(
+                                        completedCount: completedTasks.count,
+                                        isEmphasized: true
+                                    )
+                                }
+                            )
+                            .buttonStyle(.plain)
+                        }
+                        
+                        ContentUnavailableView(
+                            "No Active Tasks Yet",
+                            systemImage: "checklist",
+                            description: Text("Add your first task to get started.")
+                        )
+                    }
                 } else {
                     List {
+                        if completedTasks.count > 0 {
+                            NavigationLink(
+                                destination: CompletedTasksView(),
+                                label: {
+                                    CompletedEntryRowView(completedCount: completedTasks.count)
+                                }
+                            )
+                        }
+                        
                         ForEach(sections) { section in
                             Section(section.title) {
                                 ForEach(section.tasks) { task in
-                                    NavigationLink(value: task) {
-                                        Text(task.title)
-                                    }
-                                    
+                                    TaskRowView(
+                                        task: task,
+                                        onDelete: viewModel.delete,
+                                        onComplete: viewModel.complete
+                                    )
                                 }
                             }
                         }
                     }
                 }
             }
-            
             .navigationTitle("Tasks")
-            .navigationDestination(for: Task.self) { task in
-                TaskEditorView(task: task)
-            }
             .toolbar {
                 Button("Add task", systemImage: "plus") {
                     viewModel.tappedPlusButton()

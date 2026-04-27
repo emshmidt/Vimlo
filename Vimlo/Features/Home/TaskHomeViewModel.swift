@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 
 enum TaskType: String, CaseIterable {
     case overdue
@@ -42,6 +43,18 @@ class TaskHomeViewModel {
     var isAddTaskSheetPresented = false
     var calendar = Calendar(identifier: Calendar.Identifier.gregorian)
     var orderedTypes: [TaskType] = [.overdue, .today, .upcoming, .noDate]
+    
+    func complete(_ task: Task, modelContext: ModelContext) throws {
+        let actions = TaskActions(modelContext: modelContext)
+        
+        try actions.completeTask(task)
+    }
+    
+    func delete(_ task: Task, modelContext: ModelContext) throws {
+        let actions = TaskActions(modelContext: modelContext)
+        
+        try actions.deleteTask(task)
+    }
     
     private func getTaskBucket(task: Task, referenceToday: Date) -> TaskType {
         guard let dueDate = task.dueDate else { return .noDate }
@@ -118,4 +131,6 @@ class TaskHomeViewModel {
     func didDismissCreateSheet() {
         isAddTaskSheetPresented = false
     }
+    
+    
 }

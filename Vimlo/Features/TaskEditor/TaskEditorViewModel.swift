@@ -14,49 +14,6 @@ enum Mode {
     case edit
 }
 
-struct TaskDraft {
-    var title: String
-    var trimmedTitle: String {
-        title.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    var isSaveEnabled: Bool {
-        !trimmedTitle.isEmpty
-    }
-    var note: String
-    var hasDueDate: Bool
-    var dueDate: Date?
-    var normalizedDueDate: Date? {
-        guard hasDueDate, let dueDate else { return nil }
-        return Calendar.current.startOfDay(for: dueDate)
-    }
-    var trimmedNote: String? {
-        note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil :
-        note.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    //var isCompleted: Bool
-    //var createdAt: Date
-    //var updatedAt: Date
-    //var completedAt: Date?
-    
-    static func empty() -> TaskDraft {
-        TaskDraft(
-            title: "",
-            note: "",
-            hasDueDate: false,
-            dueDate: nil
-        )
-    }
-    
-    static func fromTask(task: Task) -> TaskDraft {
-        TaskDraft(
-            title: task.title,
-            note: task.note ?? "",
-            hasDueDate: task.dueDate != nil,
-            dueDate: task.dueDate
-        )
-    }
-}
-
 @Observable
 class TaskEditorViewModel {
     var title: String {
@@ -66,21 +23,28 @@ class TaskEditorViewModel {
         
         return "Edit task"
     }
+    var saveTitle: String {
+        if mode == .create {
+            return "Create"
+        }
+        
+        return "Save"
+    }
     let mode: Mode
     var taskDraft: TaskDraft
-    var editingtask: Task?
+    var editingTask: Task?
     var isDeletePresented = false
     
     init() {
         self.mode = .create
         self.taskDraft = .empty()
-        self.editingtask = nil
+        self.editingTask = nil
     }
     
     init(task: Task) {
         self.mode = .edit
         self.taskDraft = .fromTask(task: task)
-        self.editingtask = task
+        self.editingTask = task
     }
     
     func save(context: ModelContext) throws {
@@ -88,10 +52,12 @@ class TaskEditorViewModel {
         if mode == .create {
             context.insert(task)
         } else {
-            editingtask?.title = task.title
-            editingtask?.note = task.note
-            editingtask?.dueDate = task.dueDate
-            editingtask?.updatedAt = Date.now
+            editingTask?.title = task.title
+            editingTask?.note = task.note
+            editingTask?.dueDate = task.dueDate
+            editingTask?.isCompleted = task.isCompleted
+            editingTask?.updatedAt = Date.now
+            editingTask?.completedAt = task.completedAt
         }
         try context.save()
     }
@@ -101,9 +67,20 @@ class TaskEditorViewModel {
     }
     
     func delete(context: ModelContext) throws {
-        context.delete(editingtask!)
-        try context.save()
-        isDeletePresented = false
+        let actions = TaskActions(modelContext: context)
+        
+        guard let task = editingTask else { return }
+        try actions.deleteTask(task)
+    }
+    
+    func onToggleCompletion() {
+        taskDraft.isCompleted.toggle()
+        print("\(taskDraft.isCompleted)")
+        if taskDraft.isCompleted {
+            taskDraft.completedAt = .now
+        } else {
+            taskDraft.completedAt = nil
+        }
     }
     
     func transformTaskDraft(from taskDraft: TaskDraft) -> Task {
@@ -111,8 +88,10 @@ class TaskEditorViewModel {
             title: taskDraft.trimmedTitle,
             note: taskDraft.trimmedNote,
             dueDate: taskDraft.normalizedDueDate ?? nil,
+            isCompleted: taskDraft.isCompleted,
             createdAt: Date.now,
-            updatedAt: Date.now
+            updatedAt: Date.now,
+            completedAt: taskDraft.completedAt
         )
     }
     
