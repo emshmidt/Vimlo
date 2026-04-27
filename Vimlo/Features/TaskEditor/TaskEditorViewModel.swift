@@ -75,7 +75,6 @@ class TaskEditorViewModel {
     
     func onToggleCompletion() {
         taskDraft.isCompleted.toggle()
-        print("\(taskDraft.isCompleted)")
         if taskDraft.isCompleted {
             taskDraft.completedAt = .now
         } else {

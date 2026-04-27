@@ -13,6 +13,7 @@ struct VimloApp: App {
     var body: some Scene {
         WindowGroup {
             TaskHomeView()
+                .tint(VimloTheme.pinkAccent)
         }
         .modelContainer(for: Task.self)
     }
